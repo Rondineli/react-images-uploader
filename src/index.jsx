@@ -158,7 +158,7 @@ export default class ImagesUploader extends Component {
 	deleteImage(key: number, url: string) {
 		if (!this.props.disabled) {
 			const imagePreviewUrls = this.state.imagePreviewUrls;
-			imagePreviewUrls.splice(key, 1);
+			var g = imagePreviewUrls.splice(key, 1);
 			this.setState({
 				imagePreviewUrls,
 			});
@@ -317,77 +317,33 @@ export default class ImagesUploader extends Component {
 
 	@autobind
 	async loadImages(files: FileList, url: string, onLoadEnd?: Function): any {
-		if (url) {
-			try {
-				const imageFormData = new FormData();
+		try {
+			const imageFormData = new FormData();
+			let tstArray = new Array();
 
-				for (let i = 0; i < files.length; i++) {
-					imageFormData.append(this.props.dataName, files[i], files[i].name);
-				}
-
-				let response = await fetch(url, {
-					method: 'POST',
-					credentials: 'include',
-					body: imageFormData,
-					headers: this.props.headers
-				});
-
-				if (response && response.status && response.status === 200) {
-					response = await response.json();
-					const multiple = this.props.multiple;
-					if (response instanceof Array || typeof response === 'string') {
-						let imagePreviewUrls = [];
-						if (multiple === false) {
-							imagePreviewUrls = response instanceof Array ? response : [response];
-						} else {
-							imagePreviewUrls = this.state.imagePreviewUrls.concat(response);
-						}
-						this.setState({
-							imagePreviewUrls,
-							optimisticPreviews: [],
-							loadState: 'success',
-						});
-						if (onLoadEnd && typeof onLoadEnd === 'function') {
-							onLoadEnd(false, response);
-						}
-					} else {
-						const err = {
-							message: 'invalid response type',
-							response,
-							fileName: 'ImagesUploader',
-						};
-						this.setState({
-							loadState: 'error',
-							optimisticPreviews: [],
-						});
-						if (onLoadEnd && typeof onLoadEnd === 'function') {
-							onLoadEnd(err);
-						}
-					}
-				} else {
-					const err = {
-						message: 'server error',
-						status: response ? response.status : false,
-						response,
-						fileName: 'ImagesUploader',
-					};
-					this.setState({
-						loadState: 'error',
-						optimisticPreviews: [],
-					});
-					if (onLoadEnd && typeof onLoadEnd === 'function') {
-						onLoadEnd(err);
-					}
-				}
-			} catch (err) {
-				if (onLoadEnd && typeof onLoadEnd === 'function') {
-					onLoadEnd(err);
-				}
-				this.setState({
-					loadState: 'error',
-					optimisticPreviews: [],
-				});
+			for (let i = 0; i < files.length; i++) {
+				imageFormData.append(this.props.dataName, files[i], files[i].name);
+				tstArray.push(URL.createObjectURL(files[i]))
 			}
+			const multiple = this.props.multiple;
+			let imagePreviewUrls = this.state.imagePreviewUrls.concat(tstArray);
+			this.setState({
+				imagePreviewUrls,
+				optimisticPreviews: [],
+				loadState: 'success',
+			});
+			if (onLoadEnd && typeof onLoadEnd === 'function') {
+				onLoadEnd(false, {});
+			}
+			
+		} catch (err) {
+			if (onLoadEnd && typeof onLoadEnd === 'function') {
+				onLoadEnd(err);
+			}
+			this.setState({
+				loadState: 'error',
+				optimisticPreviews: [],
+			});
 		}
 	}
 
@@ -428,7 +384,7 @@ export default class ImagesUploader extends Component {
 		for (let i = 0; i < filesList.length; i++) {
 			const file = filesList[i];
 
-			if (optimisticPreviews) {
+			if (optimisticPreviews && !url) {
 				const reader = new FileReader();
 				reader.onload = (upload) => {
 					if (multiple === false) {
@@ -436,11 +392,13 @@ export default class ImagesUploader extends Component {
 							optimisticPreviews: [upload.target.result],
 						});
 					} else {
-						const prevOptimisticPreviews = this.state.optimisticPreviews;
+						
+						let prevOptimisticPreviews = this.state.optimisticPreviews;
 						this.setState({
 							optimisticPreviews: prevOptimisticPreviews.concat(upload.target.result),
 						});
 					}
+					
 				};
 				reader.readAsDataURL(file);
 			}
@@ -460,7 +418,6 @@ export default class ImagesUploader extends Component {
 				return;
 			}
 		}
-
 		if (url) {
 			this.loadImages(filesList, url, onLoadEnd);
 		}
